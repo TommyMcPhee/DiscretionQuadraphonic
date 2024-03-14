@@ -14,6 +14,7 @@ public:
 	void setupWav();
 	void writeToFile(ofstream& file, int value, int size);
 	void recordSample(int channel);
+	void recordStereo(int channel);
 	float getIncrement(float cycles);
 	void audioSetup();
 	void refresh();
@@ -34,6 +35,8 @@ public:
 	ofVec3f getVec(int control);
 	ofVec3f getPanVec(int control);
 	ofstream wavFile;
+	ofstream stereoWavFile;
+	array<ofstream, 12> wavFiles;
 	const int byteDepth = 2;
 	int preAudioP;
 	int postAudioP;
@@ -98,6 +101,7 @@ public:
 	array<float, 4> pannedC;
 	array<float, 12> lastSample;
 	array<float, 12> sample;
+	array<float, 2> stereoSample;
 	int width;
 	int height;
 	int x;
