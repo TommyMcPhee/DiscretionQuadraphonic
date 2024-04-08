@@ -6,7 +6,6 @@ void ofApp::setup() {
 	oscillatorA = pulseOsc(0.5, 800, 0.0, 0.5, sampleRate);
 	oscillatorB = pulseOsc(0.5, 800, 0.0, 0.5, sampleRate);
 	oscillatorC = pulseOsc(0.5, 800, 0.0, 0.5, sampleRate);
-	nyquistOscillator = pulseOsc(0.5, nyquist, 0.0, 0.0, sampleRate);
 	shader.load("discretionFixedShader");
 	buffer0.allocate(ofGetScreenWidth(), ofGetScreenHeight());
 	buffer0.clear();
@@ -44,9 +43,7 @@ void ofApp::draw() {
 
 //--------------------------------------------------------------
 void ofApp::exit() {
-	for (int a = 0; a < wavFiles.size(); a++) {
-		wavFiles[a].close();
-	}
+	wavFile.close();
 	ofSoundStreamClose();
 }
 
@@ -56,80 +53,32 @@ void ofApp::ofSoundStreamSetup(ofSoundStreamSettings& settings) {
 }
 
 void ofApp::audioOut(ofSoundBuffer& buffer) {
-	float average = 0.0;
 	for (int a = 0; a < buffer.getNumFrames(); a++) {
 		getSample();
-		for (int b = 0; b < 2; b++) {
-			stereoSample = { 0.0, 0.0 };
-			for (int c = 0; c < 6; c++) {
-				stereoSample[b] += sample[2 * c + b] / 6.0;
-				recordStereo(b);
-			}
-			buffer[a * 2 + b] = stereoSample[b];
-		}
-		/*
-		for (int b = 0; b < 8; b++) {
-			buffer[a * 8 + b] = sample[b];
-		}
-		*/
 		for (int b = 0; b < channels; b++) {
-			average += sample[b];
+			//buffer[a * channels + b] = sample[b];
 			recordSample(b);
 		}
 	}
-	average /= ((float)bufferSize * channels);
 }
 
 void ofApp::setupWav() {
-		wavFile.open("discretionFixedMediaMultichannel.wav", ios::binary);
-		wavFile << "RIFF";
-		wavFile << "----";
-		wavFile << "WAVE";
-		wavFile << "fmt ";
-		writeToFile(wavFile, byteDepth * 8, 4);
-		writeToFile(wavFile, 1, 2);
-		writeToFile(wavFile, channels, 2);
-		writeToFile(wavFile, sampleRate, 4);
-		writeToFile(wavFile, sampleRate * byteDepth, 4);
-		writeToFile(wavFile, byteDepth, 2);
-		writeToFile(wavFile, byteDepth * 8, 2);
-		wavFile << "data";
-		wavFile << "----";
-		preAudioP = wavFile.tellp();
-		maxSampleInt = pow(2, byteDepth * 8 - 1) - 1;
-		stereoWavFile.open("discretionFixedMediaStereo.wav", ios::binary);
-		stereoWavFile << "RIFF";
-		stereoWavFile << "----";
-		stereoWavFile << "WAVE";
-		stereoWavFile << "fmt ";
-		writeToFile(stereoWavFile, byteDepth * 8, 4);
-		writeToFile(stereoWavFile, 1, 2);
-		writeToFile(stereoWavFile, 2, 2);
-		writeToFile(stereoWavFile, sampleRate, 4);
-		writeToFile(stereoWavFile, sampleRate * byteDepth, 4);
-		writeToFile(stereoWavFile, byteDepth, 2);
-		writeToFile(stereoWavFile, byteDepth * 8, 2);
-		stereoWavFile << "data";
-		stereoWavFile << "----";
-		preAudioP = stereoWavFile.tellp();
-	for (int a = 0; a < wavFiles.size(); a++) {
-		wavFiles[a].open("discretionFixedMediaChannel" + to_string(a + 1) + ".wav", ios::binary);
-		wavFiles[a] << "RIFF";
-		wavFiles[a] << "----";
-		wavFiles[a] << "WAVE";
-		wavFiles[a] << "fmt ";
-		writeToFile(wavFiles[a], byteDepth * 8, 4);
-		writeToFile(wavFiles[a], 1, 2);
-		writeToFile(wavFiles[a], 1, 2);
-		writeToFile(wavFiles[a], sampleRate, 4);
-		writeToFile(wavFiles[a], sampleRate * byteDepth, 4);
-		writeToFile(wavFiles[a], byteDepth, 2);
-		writeToFile(wavFiles[a], byteDepth * 8, 2);
-		wavFiles[a] << "data";
-		wavFiles[a] << "----";
-		preAudioP = wavFiles[a].tellp();
-		maxSampleInt = pow(2, byteDepth * 8 - 1) - 1;
-	}
+	wavFile.open("discretionQuadraphonic.wav", ios::binary);
+	wavFile << "RIFF";
+	wavFile << "----";
+	wavFile << "WAVE";
+	wavFile << "fmt ";
+	writeToFile(wavFile, byteDepth * 8, 4);
+	writeToFile(wavFile, 1, 2);
+	writeToFile(wavFile, channels, 2);
+	writeToFile(wavFile, sampleRate, 4);
+	writeToFile(wavFile, sampleRate * byteDepth, 4);
+	writeToFile(wavFile, byteDepth, 2);
+	writeToFile(wavFile, byteDepth * 8, 2);
+	wavFile << "data";
+	wavFile << "----";
+	preAudioP = wavFile.tellp();
+	maxSampleInt = pow(2, byteDepth * 8 - 1) - 1;
 }
 
 void ofApp::writeToFile(ofstream& file, int value, int size) {
@@ -139,12 +88,6 @@ void ofApp::writeToFile(ofstream& file, int value, int size) {
 void ofApp::recordSample(int channel) {
 	sampleInt = static_cast<int>(sample[channel] * maxSampleInt);
 	wavFile.write(reinterpret_cast<char*> (&sampleInt), byteDepth);
-	wavFiles[channel].write(reinterpret_cast<char*> (&sampleInt), byteDepth);
-}
-
-void ofApp::recordStereo(int channel) {
-	sampleInt = static_cast<int>(stereoSample[channel] * maxSampleInt);
-	stereoWavFile.write(reinterpret_cast<char*> (&sampleInt), byteDepth);
 }
 
 void ofApp::audioSetup() {
@@ -296,39 +239,24 @@ void ofApp::getSample() {
 	oscillatorC.setDuty(dutyC);
 	oscillatorC.setFreq(frequencyC);
 	oscillatorC.setAmp(amplitudeC);
-	dutyATotal += dutyA / samplesElapsed;
-	dutyBTotal += dutyB / samplesElapsed;
-	dutyCTotal += dutyC / samplesElapsed;
-	frequencyATotal += pow(frequencyA / nyquist, 0.5) / samplesElapsed;
-	frequencyBTotal += pow(frequencyB / nyquist, 0.5) / samplesElapsed;
-	frequencyCTotal += pow(frequencyC / nyquist, 0.5) / samplesElapsed;
-	nyquistOscillator.setAmp(phasor1);
-	nyquistSample = nyquistOscillator.getSample();
-	sampleA = mix2(oscillatorA.getSample(), nyquistSample);
-	sampleB = mix2(oscillatorB.getSample(), nyquistSample);
-	sampleC = mix2(oscillatorC.getSample(), nyquistSample);
-	sampleATotal += sampleA / samplesElapsed;
-	sampleBTotal += sampleB / samplesElapsed;
-	sampleCTotal += sampleC / samplesElapsed;
+	dutyATotal += dutyA;
+	dutyBTotal += dutyB;
+	dutyCTotal += dutyC;
+	frequencyATotal += pow(frequencyA / nyquist, 0.5);
+	frequencyBTotal += pow(frequencyB / nyquist, 0.5);
+	frequencyCTotal += pow(frequencyC / nyquist, 0.5);
+	sampleA = oscillatorA.getSample();
+	sampleB = oscillatorB.getSample();
+	sampleC = oscillatorC.getSample();
+	sampleATotal += sampleA;
+	sampleBTotal += sampleB;
+	sampleCTotal += sampleC;
 	pannedA = spatialize(15, 16, sampleB, sampleC, sampleA);
 	pannedB = spatialize(23, 24, sampleA, sampleC, sampleB);
 	pannedC = spatialize(31, 32, sampleB, sampleC, sampleA);
 	for (int a = 0; a < channels; a++) {
 		lastSample[a] = sample[a];
-		float channelSample;
-		int oscillator = a % 3;
-		int panIndex = (a - oscillator) % 4;
-		switch (oscillator) {
-		case 0:
-			channelSample = pannedA[panIndex];
-			break;
-		case 1:
-			channelSample = pannedB[panIndex];
-			break;
-		case 2:
-			channelSample = pannedC[panIndex];
-			break;
-		}
+		float channelSample = pannedA[a] + pannedB[a] + pannedC[a] / 3.0;
 		sample[a] = (lastSample[a] * feedback) + channelSample * (1.0 - feedback);
 	}
 }
@@ -376,14 +304,12 @@ float ofApp::getArgument(float center, float maximumIndex, int controlA, int con
 	return center + (parameters[controlA] * sampleA * maximumIndex) + (parameters[controlB] * sampleB * maximumIndex);
 }
 
-inline float ofApp::mix2(float a, float b) {
-	return a * (1.0 - abs(b)) * ofSign(b) + b;
+inline float ofApp::mix3(float a, float b, float c) {
+	return (a + b + c) / 3.0;
 }
 
 void ofApp::setUniforms() {
 	shader.setUniform2f("window", window);
-	shader.setUniform1f("feedback", phasor1);
-	cout << feedback << endl;
 	xTranslate.set(getXY(dutyATotal), getXY(dutyBTotal), getXY(dutyCTotal));
 	yTranslate.set(getXY(frequencyATotal), getXY(frequencyBTotal), getXY(frequencyCTotal));
 	zTranslate.set(getZ(sampleATotal), getZ(sampleBTotal), getZ(sampleCTotal));

@@ -14,7 +14,6 @@ public:
 	void setupWav();
 	void writeToFile(ofstream& file, int value, int size);
 	void recordSample(int channel);
-	void recordStereo(int channel);
 	float getIncrement(float cycles);
 	void audioSetup();
 	void refresh();
@@ -28,15 +27,13 @@ public:
 	float getFrequency(int control, int controlA, int controlB, float sampleA, float sampleB);
 	float getAmplitude(int control, int controlA, int controlB, float sampleA, float sampleB);
 	float getArgument(float center, float maximumIndex, int controlA, int controlB, float sampleA, float sampleB);
-	inline float mix2(float a, float b);
+	inline float mix3(float a, float b, float c);
 	void setUniforms();
 	float getXY(float total);
 	float getZ(float sampleTotal);
 	ofVec3f getVec(int control);
 	ofVec3f getPanVec(int control);
 	ofstream wavFile;
-	ofstream stereoWavFile;
-	array<ofstream, 12> wavFiles;
 	const int byteDepth = 2;
 	int preAudioP;
 	int postAudioP;
@@ -44,7 +41,7 @@ public:
 	int maxSampleInt;
 	const int sampleRate = 48000;
 	const int bufferSize = 256;
-	const int channels = 12;
+	const int channels = 4;
 	ofSoundStreamSettings settings;
 	ofSoundStream stream;
 	float nyquist;
@@ -99,9 +96,8 @@ public:
 	array<float, 4> pannedA;
 	array<float, 4> pannedB;
 	array<float, 4> pannedC;
-	array<float, 12> lastSample;
-	array<float, 12> sample;
-	array<float, 2> stereoSample;
+	array<float, 4> lastSample;
+	array<float, 4> sample;
 	int width;
 	int height;
 	int x;
@@ -124,6 +120,4 @@ public:
 	pulseOsc oscillatorA;
 	pulseOsc oscillatorB;
 	pulseOsc oscillatorC;
-	pulseOsc nyquistOscillator;
-	float nyquistSample;
 };
